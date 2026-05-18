@@ -1,1 +1,0 @@
-import * as _core from "@deno-ink/core";
