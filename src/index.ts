@@ -2,10 +2,11 @@ import {
   ASCIIFont,
   Box,
   createCliRenderer,
-  Text,
-  TextAttributes,
-  SelectRenderable
+  SelectRenderable,
+  SelectRenderableEvents
 } from "@opentui/core";
+
+import * as data from "./schema"
 
 const renderer = await createCliRenderer({ exitOnCtrlC: true });
 
@@ -18,12 +19,26 @@ class Game {
       itemSpacing: 1,
       backgroundColor: "transparent",
       focusedBackgroundColor: "transparent",
+      selectedTextColor: "lime",
+      selectedBackgroundColor: "transparent",
       options: [
         { name: "New Game", description: "Start a new save" },
         { name: "Load Game", description: "Load an existing save" },
         { name: "Quit", description: "Exit the game" }
       ]
     });
+    
+    selector.on(SelectRenderableEvents.ITEM_SELECTED, (index, option)=>{
+      if (option.name == "Quit") {
+        renderer.destroy();
+      } else if (option.name == "New Game") {
+        //
+      } else if (option.name == "Load Game") {
+        
+      }
+    })
+
+    selector.focus();
 
     renderer.root.add(
       Box({alignItems: "center", justifyContent: "center", width: "100%", height: "100%"},
