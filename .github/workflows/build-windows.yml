@@ -1,7 +1,16 @@
 name: Build Windows Executable
 
 on:
-  workflow_dispatch: # Allows you to run this manually from the GitHub Actions tab
+  push:
+    tags:
+      - 'v[0-9]*'
+      - '*-v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Manual version name (e.g., beta-v0.1.5)'
+        required: true
+        default: 'manual-build'
 
 jobs:
   build:
@@ -10,6 +19,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Determine Version Name
+        id: get_version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -20,12 +40,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Compile Executable
+        shell: bash
         run: |
-          mkdir builds -ErrorAction SilentlyContinue
-          bun build src/index.ts --compile --target=bun-windows-x64 --outfile ./builds/doodle-tale-beta-v0.1.5.exe
+          mkdir -p ./builds
+          bun build src/index.ts --compile --target=bun-windows-x64 --outfile ./builds/doodle-tale-${{ env.VERSION }}.exe
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: doodle-tale-windows-build
-          path: ./builds/doodle-tale-beta-v0.1.5.exe
+          name: doodle-tale-windows-${{ env.VERSION }}
+          path: ./builds/doodle-tale-${{ env.VERSION }}.exe
