@@ -1,9 +1,16 @@
 import {
   ASCIIFont,
+  ASCIIFontRenderable,
   Box,
   createCliRenderer,
+  Input,
+  InputRenderable,
+  InputRenderableEvents,
+  RGBA,
   SelectRenderable,
-  SelectRenderableEvents
+  SelectRenderableEvents,
+  Text,
+  TextAttributes
 } from "@opentui/core";
 import * as data from "./save_schema/loader"
 import {readdir} from "node:fs/promises";
@@ -128,7 +135,75 @@ class Game {
         renderer.destroy();
         process.exit(0);
       } else if (option.name == "New Game") {
-        this.data = new_data("Player");
+        renderer.root.getChildren().forEach(c => c.destroy());
+        var nameinput = new InputRenderable(renderer, {
+          id: "name_input",
+          width: 21,
+          maxLength: 16,
+          backgroundColor: "transparent", 
+          focusedBackgroundColor: "transparent",
+          textColor: "white",
+          focusedTextColor: "white",
+          placeholder: "enter your name",
+        });
+
+        var title = new ASCIIFontRenderable(renderer, {font: "tiny", text: ""});
+        var titletwo = new ASCIIFontRenderable(renderer, {font: "tiny", text: ""});
+        var titlethree = new ASCIIFontRenderable(renderer, {font: "tiny", text: ""});
+        renderer.root.add(
+          Box({alignItems: "center", justifyContent: "center", width: "100%", height: "100%", flexDirection: "column", gap:1},
+            Box({alignItems: "center", justifyContent: "center", flexDirection:"column", gap:1},
+              title,
+              titletwo,
+              titlethree
+            ),
+            Box({alignItems: "center", justifyContent: "center"},
+              nameinput
+            )
+          )
+        )
+
+        var name = "";
+        nameinput.on(InputRenderableEvents.CHANGE, (value) => {
+          name = value;
+        });
+
+        nameinput.on(InputRenderableEvents.ENTER, (value) => {
+          if (value.trim() == "") return;
+          this.data = new_data(value);
+          renderer.root.getChildren().forEach(c => c.destroy());
+          renderer.setCursorStyle({
+            style: "block",
+            blinking: true,
+            color: RGBA.fromHex("#c32b2b"),
+          })
+          setTimeout(() => {
+            renderer.destroy();
+            process.exit(0);
+          }, 2000)
+        });
+
+        nameinput.focus();
+        const pattern = "o1o1oooo1o1ooo1111ooo1o1ooo1111ooo11oo1oo1o1o1111oo1o"
+        const length = 500; // Total characters to display at once
+        let startIndex = 0;
+
+        setInterval(() => {
+          let result = "";
+          
+          for (let i = 0; i < length; i++) {
+            const charIndex = (startIndex + i) % pattern.length;
+            result += pattern[charIndex];
+          }
+          
+          title.text = result;
+          titletwo.text = result+"o";
+          titlethree.text = result+"o1"
+          startIndex = (startIndex + 1) % pattern.length;
+
+        }, 100);
+
+
       } else if (option.name == "Load Game") {
         const loaded_data = await directory_vis(import.meta.dir);
         if (loaded_data != null) {
@@ -136,6 +211,7 @@ class Game {
           if (!this.data.valid){
             this.data = new_data("Player");
           } 
+          process.exit(0);
         } else {
           renderer.destroy();
           process.exit(0);
@@ -148,7 +224,8 @@ class Game {
     renderer.root.add(
       Box({alignItems: "center", justifyContent: "center", width: "100%", height: "100%"},
         Box({alignItems: "center", justifyContent: "center"},
-          ASCIIFont({font: "slick", text: "Doodle Tale"})
+          ASCIIFont({font: "slick", text: "Doodle Tale"}),
+          Text({content: "v0.1.4", attributes: TextAttributes.DIM, alignSelf: "flex-end"})
         ),
         Box({alignItems: "center", justifyContent: "center", paddingTop: 2},
           selector
