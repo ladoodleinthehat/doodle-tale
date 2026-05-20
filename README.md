@@ -13,5 +13,4 @@ bun dev
 ```
 version scheme
 
-main:
-`v(big update).(patch).(commit)`
+https://github.com/LaDoodleInTheHat/doodle-tale/releases/tag/beta
