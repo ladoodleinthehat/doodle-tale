@@ -11,10 +11,10 @@ import {
   Text,
   TextAttributes,
 } from "@opentui/core";
-import * as data from "./save_schema/loader";
+import * as data from "./file_manager/loader";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { Data, new_data } from "./save_schema/data";
+import { Data, new_data } from "./file_manager/data";
 
 const renderer = await createCliRenderer({ exitOnCtrlC: true });
 
@@ -29,27 +29,27 @@ process.on("unhandledRejection", shutdown);
 
 async function directory_vis(dir: string): Promise<Dict<any> | null> {
   renderer.root.getChildren().forEach((c) => c.destroy());
-
+  
   const fileselector = new SelectRenderable(renderer, {
     id: "file_selector",
     width: 25,
     height: "100%",
     itemSpacing: 1,
-    focusedBackgroundColor: "transparent",
     selectedTextColor: "lime",
     options: [],
   });
 
   const exit_selector = new SelectRenderable(renderer, {
-    alignSelf: "flex-end",
     id: "exit_selector",
     width: 25,
-    height: 3,
+    height: "100%",
     itemSpacing: 1,
-    focusedBackgroundColor: "white",
     selectedTextColor: "red",
     selectedBackgroundColor: "transparent",
-    options: [{ name: "EXIT", description: "Exit out of program" }],
+    options: [
+      { name: "EXIT", description: "Exit out of program" },
+    ],
+    marginLeft: 2,
   });
 
   exit_selector.on(SelectRenderableEvents.ITEM_SELECTED, (_index, option) => {
@@ -65,15 +65,21 @@ async function directory_vis(dir: string): Promise<Dict<any> | null> {
   const files = await readdir(dir);
   for (const file of files) {
     if (file.endsWith(".save")) {
-      fileselector.options.push({ name: "💾 " + file, description: "save file" });
+      fileselector.options.push({
+        name: "💾 " + file,
+        description: "save file",
+      });
     } else if (!file.includes(".")) {
-      fileselector.options.push({ name: "📂 "+file + "/", description: "directory" });
+      fileselector.options.push({
+        name: "📂 " + file + "/",
+        description: "directory",
+      });
     }
   }
 
   renderer.root.add(
     Box(
-      { width: "100%", height: "100%", margin: 2 },
+      { width: "100%", height: "100%", margin: 2, flexDirection: "row" },
       fileselector,
       exit_selector,
     ),
@@ -87,8 +93,10 @@ async function directory_vis(dir: string): Promise<Dict<any> | null> {
           renderer.root.getChildren().forEach((c) => c.destroy());
           resolve(directory_vis(path.dirname(dir)));
         } else if (option.name.endsWith(".save")) {
-          const save_data = await data.load(path.join(dir, option.name));
+          const fileName = option.name.replace(/^.+?\s/, "");
+          const save_data = await data.load(path.join(dir, fileName));
           if (save_data == null) {
+            if (renderer.root.getRenderable("error")) return;
             renderer.root.add(
               Box(
                 {
@@ -97,6 +105,9 @@ async function directory_vis(dir: string): Promise<Dict<any> | null> {
                   height: 10,
                   alignItems: "baseline",
                   justifyContent: "center",
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
                 },
                 ASCIIFont({ font: "tiny", text: "Error loading save file" }),
               ),
@@ -109,7 +120,9 @@ async function directory_vis(dir: string): Promise<Dict<any> | null> {
             resolve(save_data);
           }
         } else if (option.name.endsWith("/")) {
-          const cleanDirName = option.name.replace("/", "");
+          const cleanDirName = option.name
+            .replace(/^.+?\s/, "")
+            .replace("/", "");
           resolve(directory_vis(path.join(dir, cleanDirName)));
         }
       },
